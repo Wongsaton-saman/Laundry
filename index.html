@@ -153,7 +153,6 @@
                 </div>
 
                 <!-- <i style="font-size: 30px;" class="fa-solid fa-plus"></i> -->
-                <!-- <h2 id="balance">0</h2> -->
 
                 <div class="d-flex flex-column justify-content-center align-items-center" onclick="logOut()"
                     style="cursor: pointer;">
@@ -207,46 +206,22 @@
             </div>
 
             <div class="col-10 mb-3">
-                <input type="file" onchange="previewFile()" class="form-control" id="inputFile" aria-label="Upload" required>
+                <input type="file" accept="image/*" onchange="previewFile()" class="form-control" id="inputFile"
+                    aria-label="Upload" required>
             </div>
 
-            <div class="col-10 mb-3 d-flex justify-content-center align-items-center">
+            <div class="col-10 mb-5 d-flex justify-content-center align-items-center">
                 <div id="filePreview"></div>
             </div>
 
-            <script>
-                function previewFile() {
-                    const preview = document.getElementById('filePreview');
-                    const fileInput = document.getElementById('inputFile').files[0];
-                    const reader = new FileReader();
-
-                    reader.onloadend = function () {
-                        const img = document.createElement('img');
-                        img.src = reader.result;
-                        img.style.height = '250px';
-                        preview.innerHTML = '';
-                        preview.appendChild(img);
-                    }
-
-                    if (fileInput) {
-                        reader.readAsDataURL(fileInput);
-                    } else {
-                        preview.innerHTML = '';
-                    }
-                }
-            </script>
-
-
-
-
-            <div class="col-6 mb-6 d-flex flex-column justify-content-center align-items-center">
+            <div class="col-6 mb-5 d-flex flex-column justify-content-center align-items-center">
                 <button type="submit" class="btn d-flex flex-row justify-content-center align-items-center"
                     style="background-color: #BB875A;color: white;">
                     <span id="sumbitLoaderActive" class="icon-submit-loader" style="display: none;"></span>
                     <div id="sumbitLoaderDeactive">
                         <div class="d-flex flex-row justify-content-center align-items-center">
-                            <i class="fas fa-save"></i>
-                            <span style="padding-left: 5px;">ส่งข้อมูล</span>
+                            <i class="fas fa-save" style="font-size: 1.5rem;"></i>
+                            <span style="padding-left: 10px;font-size: 1.5rem;">ส่งข้อมูล</span>
                         </div>
                     </div>
                 </button>
@@ -263,7 +238,7 @@
     <script>
 
         const LIFF_ID = '2003421314-3RNAqM9W';
-        const APP_SCRIPT_DEPLOYMENT_ID = 'AKfycbzja75b7Iuikk40cL86h9uuwdV226QJCU7W69nY_aYGsfZ0x04y73x5PBtHqH0-gTcB';
+        const APP_SCRIPT_DEPLOYMENT_ID = 'AKfycbx2Ky47sNxn9mivrkcwpIDZF9mnIjNZM6Iv9TWfJoMC-CKngeEdZAG8y3-42IKug65Y';
 
         const checkLineLogin = async () => {
             await liff.init({ liffId: LIFF_ID });
@@ -297,13 +272,42 @@
                     balance.innerText = response?.data?.balance || 0;
                 })
                 .catch(error => {
-                    console.error('getBalance eror:', error);
+                    console.error('getBalance error:', error);
                 });
         }
 
         function getCurrentDateTimeGMTplus7() {
             var currentDateTimeGMTplus7 = moment().utcOffset(420).format('DD/MM/YYYY HH:mm:ss');
             return currentDateTimeGMTplus7;
+        }
+
+        let slipUploadData = {};
+
+        function previewFile() {
+            const preview = document.getElementById('filePreview');
+            const fileInput = document.getElementById('inputFile').files[0];
+            const reader = new FileReader();
+
+            reader.onloadend = function () {
+                const img = document.createElement('img');
+                img.src = reader.result;
+                img.style.height = '250px';
+                preview.innerHTML = '';
+                preview.appendChild(img);
+
+                let spt = reader.result.split("base64,")[1];
+                slipUploadData = {
+                    base64: spt,
+                    type: fileInput.type,
+                    name: fileInput.name
+                }
+            }
+
+            if (fileInput) {
+                reader.readAsDataURL(fileInput);
+            } else {
+                preview.innerHTML = '';
+            }
         }
 
         function save(data) {
@@ -314,26 +318,28 @@
 
             const promotion = `${proName.value}`.split('_');
 
-            const formData = new FormData();
             const fileInput = document.getElementById('inputFile').files[0];
-            formData.append('slip', fileInput);
-            formData.append('now', getCurrentDateTimeGMTplus7());
-            formData.append('proName', promotion[0]);
-            formData.append('pushItem', promotion[1]);
-            formData.append('countItem', countItem.value);
-            formData.append('otherMessage', otherMessage.value);
-            formData.append('lineDisplayName', lineDisplayName.value);
-            formData.append('lineUserId', lineUserId.value);
 
             const options = {
                 mode: 'no-cors',
                 method: 'POST',
-                body: formData,
+                body: JSON.stringify({
+                    "now": getCurrentDateTimeGMTplus7(),
+                    "proName": promotion[0],
+                    "pushItem": promotion[1],
+                    "countItem": countItem.value,
+                    "otherMessage": otherMessage.value,
+                    "lineDisplayName": lineDisplayName.value,
+                    "lineUserId": lineUserId.value,
+                    "slip": JSON.stringify(slipUploadData),
+                })
             };
 
             fetch('https://script.google.com/macros/s/' + APP_SCRIPT_DEPLOYMENT_ID + '/exec?action=adddata', options)
                 .then(response => success())
-                .catch(err => console.error(err));
+                .catch(error => {
+                    console.error('save error:', error);
+                });
 
         }
 
